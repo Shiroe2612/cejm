@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz CEJM — BTS SIO</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: background 0.5s ease;
+  }
+  #app { max-width: 560px; width: 100%; }
+
+  .badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid;
+  }
+  .progress-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .question-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 26px 22px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+  }
+  .question-text {
+    color: #fff;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .opt-btn {
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .opt-btn:disabled { cursor: default; }
+  .opt-letter {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .explication {
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.75);
+    border: 1px solid;
+  }
+  .next-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 15px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    color: #000;
+  }
+  .score-info {
+    text-align: center;
+    margin-top: 14px;
+    color: rgba(255,255,255,0.25);
+    font-size: 12px;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Résultats */
+  .result-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 40px 32px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    margin: 0 auto;
+  }
+  .result-emoji { font-size: 64px; margin-bottom: 12px; }
+  .result-title { color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+  .result-subtitle { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 28px; }
+  .result-score-box {
+    background: rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .result-score-num { font-size: 52px; font-weight: 800; line-height: 1; }
+  .result-score-pct { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 6px; }
+  .result-bar-wrap { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 14px; overflow: hidden; }
+  .result-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .stats-title { color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; text-align: left; }
+  .stat-row { margin-bottom: 10px; }
+  .stat-labels { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .stat-cat { color: rgba(255,255,255,0.7); font-size: 13px; }
+  .stat-score { font-size: 13px; font-weight: 700; }
+  .stat-bar-wrap { height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 3px; }
+  .restart-btn {
+    background: linear-gradient(135deg, #00c6ff, #bf5af2);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 32px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const questions = [
+  {
+    categorie: "📊 Économie",
+    question: "Selon Schumpeter, qu'est-ce que la « destruction créatrice » ?",
+    options: [
+      "La faillite des entreprises mal gérées",
+      "Le processus par lequel l'innovation remplace les anciennes industries",
+      "La destruction des monopoles par l'État",
+      "La crise économique qui précède la reprise",
+    ],
+    bonne: 1,
+    explication: "Schumpeter (1942) montre que l'innovation est le moteur du capitalisme : de nouvelles technologies détruisent les anciennes activités pour en créer de nouvelles. Ex : internet a détruit les agences de voyage classiques.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Keynes préconise, en période de crise, que l'État doit :",
+    options: [
+      "Réduire ses dépenses pour équilibrer le budget",
+      "Augmenter les taux d'intérêt",
+      "Investir massivement pour relancer la demande",
+      "Laisser le marché se réguler seul",
+    ],
+    bonne: 2,
+    explication: "Keynes (1936) théorise que l'État doit intervenir via des dépenses publiques (politique budgétaire expansionniste) pour relancer la demande et sortir de la récession.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Adam Smith est associé à quel concept clé ?",
+    options: [
+      "La destruction créatrice",
+      "La main invisible du marché",
+      "Le circuit économique",
+      "La courbe de Phillips",
+    ],
+    bonne: 1,
+    explication: "Adam Smith (1776) explique que le marché libre s'auto-régule grâce à la « main invisible » : chaque individu en cherchant son intérêt personnel contribue à l'intérêt général.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Qu'est-ce que le PIB ?",
+    options: [
+      "Le bénéfice total des entreprises françaises",
+      "La valeur de tous les biens et services produits sur le territoire en un an",
+      "Le montant total des impôts collectés par l'État",
+      "La somme des salaires versés aux ménages",
+    ],
+    bonne: 1,
+    explication: "Le PIB (Produit Intérieur Brut) mesure la richesse créée sur un territoire donné en une année. C'est l'indicateur principal de la croissance économique.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Dans un oligopole, combien y a-t-il d'offreurs ?",
+    options: [
+      "Un seul (monopole)",
+      "Deux exactement (duopole)",
+      "Quelques grandes entreprises",
+      "Une multitude de petits vendeurs",
+    ],
+    bonne: 2,
+    explication: "L'oligopole = peu d'offreurs puissants face à de nombreux demandeurs. Ex : les opérateurs téléphoniques (Orange, SFR, Bouygues, Free).",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Quel organisme gère la politique monétaire en Europe ?",
+    options: ["Le FMI", "La BCE (Banque Centrale Européenne)", "Le Trésor Public", "L'INSEE"],
+    bonne: 1,
+    explication: "La BCE fixe les taux directeurs pour contrôler l'inflation et soutenir l'économie de la zone euro.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Ricardo est connu pour la théorie des :",
+    options: [
+      "Avantages absolus",
+      "Avantages comparatifs",
+      "Cycles économiques longs",
+      "Trappes à pauvreté",
+    ],
+    bonne: 1,
+    explication: "David Ricardo (1817) montre que chaque pays a intérêt à se spécialiser dans ce qu'il produit relativement le mieux. C'est le fondement du libre-échange.",
+  },
+  {
+    categorie: "📊 Économie",
+    question: "Les « cycles de Kondratiev » durent environ :",
+    options: ["5 à 10 ans", "10 à 20 ans", "40 à 60 ans", "100 ans"],
+    bonne: 2,
+    explication: "Nikolaï Kondratiev identifie des cycles économiques longs de 40 à 60 ans liés aux grandes vagues d'innovation technologique (révolution industrielle, électricité, informatique...).",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "Quelles sont les conditions de validité d'un contrat ?",
+    options: [
+      "Signature + date + témoin",
+      "Consentement, capacité, objet licite, cause licite",
+      "Offre + acceptation + prix",
+      "Écrit + signature + enregistrement notarial",
+    ],
+    bonne: 1,
+    explication: "Les 4 conditions : consentement non vicié, capacité juridique des parties, objet licite et certain, cause licite.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "Quelle est la durée maximale d'un CDD ?",
+    options: ["6 mois", "12 mois", "18 mois", "24 mois"],
+    bonne: 2,
+    explication: "Un CDD ne peut dépasser 18 mois en général (renouvellements inclus). Il doit correspondre à un cas précis prévu par la loi.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "Que signifie le RGPD ?",
+    options: [
+      "Règlement Général sur la Protection des Données",
+      "Registre Général des Professions Digitales",
+      "Règlement de Gestion des Programmes Développeurs",
+      "Réseau Général de Protection des Droits",
+    ],
+    bonne: 0,
+    explication: "Le RGPD (2018) encadre la collecte et le traitement des données personnelles en Europe. Clé pour le BTS SIO : consentement, droit d'accès, droit à l'oubli.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "La responsabilité pénale concerne :",
+    options: [
+      "La réparation d'un préjudice causé à une autre personne",
+      "Le non-respect d'un contrat signé",
+      "Une infraction envers la société, sanctionnée par une peine",
+      "Un litige entre employeur et salarié",
+    ],
+    bonne: 2,
+    explication: "La responsabilité pénale = infraction à la loi (ex : piratage). La sanction est une peine (prison, amende). La responsabilité civile, elle, répare un préjudice.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "Un vice du consentement qui consiste à tromper volontairement l'autre partie s'appelle :",
+    options: ["L'erreur", "Le dol", "La violence", "La lésion"],
+    bonne: 1,
+    explication: "Le dol = tromperie intentionnelle. Il vicie le consentement et peut entraîner la nullité du contrat. Ex : un vendeur qui cache un défaut majeur d'un bien.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "La CNIL est l'autorité chargée de :",
+    options: [
+      "Réguler les marchés financiers",
+      "Contrôler l'application du droit du travail",
+      "Veiller à la protection des données personnelles en France",
+      "Superviser les tribunaux de commerce",
+    ],
+    bonne: 2,
+    explication: "La CNIL contrôle le respect du RGPD et de la loi Informatique et Libertés. Elle peut sanctionner les entreprises qui ne protègent pas les données.",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "En droit du travail, le principe de non-discrimination s'applique notamment à :",
+    options: [
+      "La fixation des salaires uniquement",
+      "L'embauche, la promotion, le licenciement",
+      "Seulement aux entreprises de + 50 salariés",
+      "Uniquement au moment de l'entretien d'embauche",
+    ],
+    bonne: 1,
+    explication: "La non-discrimination s'applique à toutes les étapes de la vie professionnelle. Critères protégés : origine, sexe, âge, handicap, opinions...",
+  },
+  {
+    categorie: "⚖️ Droit",
+    question: "Qu'est-ce qu'un acte sous seing privé ?",
+    options: [
+      "Un acte rédigé et authentifié par un notaire",
+      "Un acte rédigé et signé par les parties sans notaire",
+      "Un acte secret dont le contenu est confidentiel",
+      "Un acte signé devant deux témoins obligatoirement",
+    ],
+    bonne: 1,
+    explication: "L'acte sous seing privé est rédigé directement par les parties (sans notaire). Il a valeur légale mais moins de force probante qu'un acte authentique.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Frederick Taylor est le père de :",
+    options: [
+      "La direction par objectifs",
+      "L'organisation scientifique du travail (OST)",
+      "Le management participatif",
+      "La pyramide des besoins",
+    ],
+    bonne: 1,
+    explication: "Taylor (fin XIXe) invente l'OST : diviser le travail en tâches simples et répétitives, mesurer les temps, optimiser la productivité. Limite : déshumanisation des travailleurs.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Dans la pyramide de Maslow, quel est le besoin le plus élevé ?",
+    options: ["Sécurité", "Appartenance", "Estime de soi", "Accomplissement de soi"],
+    bonne: 3,
+    explication: "Pyramide de Maslow (bas → haut) : besoins physiologiques → sécurité → appartenance → estime → accomplissement de soi. Un besoin supérieur ne peut être satisfait que si les inférieurs le sont.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Herzberg distingue les facteurs de motivation des facteurs :",
+    options: ["De production", "D'hygiène", "De compétence", "De hiérarchie"],
+    bonne: 1,
+    explication: "Les facteurs d'hygiène (salaire, conditions) évitent l'insatisfaction mais ne motivent pas. Seuls les facteurs de motivation (reconnaissance, responsabilités) créent la vraie satisfaction.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Henry Mintzberg est connu pour :",
+    options: [
+      "La théorie des besoins",
+      "La description des rôles du manager et des configurations organisationnelles",
+      "L'invention du SWOT",
+      "La théorie X et Y",
+    ],
+    bonne: 1,
+    explication: "Mintzberg identifie les 10 rôles du manager (interpersonnel, informationnel, décisionnel) et décrit 5 configurations organisationnelles (structure simple, bureaucratie, adhocratie...).",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "La théorie X de McGregor suppose que les salariés sont :",
+    options: [
+      "Naturellement motivés et créatifs",
+      "Paresseux et ont besoin d'être contrôlés",
+      "Autonomes et cherchent les responsabilités",
+      "Sensibles à la reconnaissance",
+    ],
+    bonne: 1,
+    explication: "McGregor : Théorie X = individus fainéants, il faut les contrôler (management autoritaire). Théorie Y = individus aiment travailler et s'auto-disciplinent (management participatif).",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Quel style de management implique les salariés dans les décisions (Likert) ?",
+    options: ["Autoritaire", "Paternaliste", "Consultatif", "Participatif"],
+    bonne: 3,
+    explication: "Le management participatif associe les salariés aux décisions. Il favorise la motivation, la créativité et la cohésion d'équipe. C'est le style le plus efficace selon Likert.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Dans une analyse SWOT, les Opportunités sont :",
+    options: [
+      "Des points forts internes à l'entreprise",
+      "Des faiblesses internes à améliorer",
+      "Des éléments favorables dans l'environnement externe",
+      "Des risques présents dans l'environnement externe",
+    ],
+    bonne: 2,
+    explication: "SWOT : Forces/Faiblesses = internes. Opportunités/Menaces = externes. Les opportunités sont des tendances du marché dont l'entreprise peut tirer profit.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "La stratégie de différenciation (Porter) consiste à :",
+    options: [
+      "Être le moins cher du marché",
+      "Se concentrer sur un seul segment de marché",
+      "Proposer une offre unique perçue comme supérieure",
+      "Diversifier les produits sur plusieurs marchés",
+    ],
+    bonne: 2,
+    explication: "Porter (1980) : domination par les coûts, différenciation (se démarquer par la qualité/image) et focalisation (niche). Ex de différenciation : Apple.",
+  },
+  {
+    categorie: "🏢 Management",
+    question: "Fayol identifie 5 fonctions de l'administration. Lesquelles ?",
+    options: [
+      "Planifier, Organiser, Commander, Coordonner, Contrôler",
+      "Produire, Vendre, Financer, RH, Communiquer",
+      "Décider, Déléguer, Motiver, Évaluer, Récompenser",
+      "Analyser, Synthétiser, Décider, Agir, Mesurer",
+    ],
+    bonne: 0,
+    explication: "Henri Fayol (1916) : POCCC — Planifier, Organiser, Commander, Coordonner, Contrôler. C'est la base des fonctions managériales encore enseignées aujourd'hui.",
+  },
+  {
+    categorie: "💻 Numérique & SIO",
+    question: "Quelle loi française encadre spécifiquement la cybercriminalité ?",
+    options: [
+      "La loi Hadopi",
+      "La loi Godfrain de 1988",
+      "La loi DADVSI",
+      "La loi Macron",
+    ],
+    bonne: 1,
+    explication: "La loi Godfrain (1988) est le premier texte français à criminaliser les atteintes aux systèmes informatiques : accès frauduleux, sabotage, vol de données.",
+  },
+  {
+    categorie: "💻 Numérique & SIO",
+    question: "Dans le cadre du RGPD, le DPO (Data Protection Officer) a pour rôle de :",
+    options: [
+      "Développer les applications de traitement des données",
+      "Veiller au respect de la réglementation sur les données personnelles",
+      "Commercialiser les données collectées par l'entreprise",
+      "Superviser la sécurité informatique uniquement",
+    ],
+    bonne: 1,
+    explication: "Le DPO conseille l'organisation, contrôle la conformité RGPD, et sert d'interlocuteur avec la CNIL. Sa désignation est obligatoire dans certaines organisations.",
+  },
+  {
+    categorie: "💻 Numérique & SIO",
+    question: "Le principe de « privacy by design » signifie :",
+    options: [
+      "Rendre le site web accessible aux personnes handicapées",
+      "Intégrer la protection des données dès la conception du système",
+      "Chiffrer toutes les données stockées après leur collecte",
+      "Publier la politique de confidentialité sur le site",
+    ],
+    bonne: 1,
+    explication: "Le « privacy by design » est un principe du RGPD : la vie privée doit être prise en compte dès le développement d'un produit ou service, pas ajoutée après coup.",
+  },
+];
+
+const COULEURS = {
+  "📊 Économie":       { bg: "#0a1628", accent: "#00c6ff", light: "#0d2540" },
+  "⚖️ Droit":          { bg: "#1a0a2e", accent: "#bf5af2", light: "#2d1050" },
+  "🏢 Management":     { bg: "#0a1f0a", accent: "#30d158", light: "#0d3310" },
+  "💻 Numérique & SIO":{ bg: "#1a1208", accent: "#ffd60a", light: "#2d2010" },
+};
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+let state = {
+  questions: shuffle(questions),
+  current: 0,
+  selected: null,
+  score: 0,
+  fini: false,
+  historique: [],
+};
+
+function getColor() {
+  const q = state.questions[state.current];
+  return COULEURS[q.categorie] || { bg: "#111", accent: "#fff", light: "#222" };
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (state.fini) {
+    renderResults(app);
+  } else {
+    renderQuiz(app);
+  }
+  updateBg();
+}
+
+function updateBg() {
+  if (state.fini) {
+    document.body.style.background = "linear-gradient(135deg, #0a0a1a 0%, #0d1a0d 50%, #1a0a2e 100%)";
+    return;
+  }
+  const c = getColor();
+  document.body.style.background = `linear-gradient(135deg, ${c.bg} 0%, #050505 100%)`;
+}
+
+function renderQuiz(app) {
+  const q = state.questions[state.current];
+  const c = getColor();
+  const total = state.questions.length;
+  const pct = ((state.current + 1) / total) * 100;
+  const answered = state.selected !== null ? state.current + 1 : state.current;
+
+  app.innerHTML = `
+    <div class="header-row">
+      <span class="badge" style="background:${c.light};color:${c.accent};border-color:${c.accent}44">${q.categorie}</span>
+      <div class="header-right">
+        <span style="color:#30d158;font-size:13px;font-weight:700">✓ ${state.score}</span>
+        <span style="color:rgba(255,255,255,0.3);font-size:13px">${state.current + 1}/${total}</span>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${c.accent},${c.accent}88)"></div>
+    </div>
+
+    <div class="question-box">
+      <p class="question-text">${q.question}</p>
+    </div>
+
+    <div class="options" id="options">
+      ${q.options.map((opt, idx) => {
+        let bg = "rgba(255,255,255,0.05)";
+        let border = "1px solid rgba(255,255,255,0.1)";
+        let color = "rgba(255,255,255,0.85)";
+        let letter = String.fromCharCode(65 + idx);
+        let letterBg = "rgba(255,255,255,0.1)";
+        let letterColor = "rgba(255,255,255,0.5)";
+        let disabled = "";
+
+        if (state.selected !== null) {
+          disabled = "disabled";
+          if (idx === q.bonne) {
+            bg = "rgba(48,209,88,0.15)"; border = "1px solid #30d158"; color = "#30d158";
+            letter = "✓"; letterBg = "rgba(48,209,88,0.15)"; letterColor = "#30d158";
+          } else if (idx === state.selected && state.selected !== q.bonne) {
+            bg = "rgba(255,69,58,0.15)"; border = "1px solid #ff453a"; color = "#ff453a";
+            letter = "✗"; letterBg = "rgba(255,69,58,0.15)"; letterColor = "#ff453a";
+          } else {
+            bg = "rgba(255,255,255,0.02)"; color = "rgba(255,255,255,0.25)"; letterColor = "rgba(255,255,255,0.2)";
+          }
+        }
+
+        return `<button class="opt-btn" data-idx="${idx}" ${disabled}
+          style="background:${bg};border:${border};color:${color}">
+          <span class="opt-letter" style="background:${letterBg};color:${letterColor}">${letter}</span>
+          ${opt}
+        </button>`;
+      }).join("")}
+    </div>
+
+    ${state.selected !== null ? `
+      <div class="explication" style="background:${c.accent}12;border-color:${c.accent}33">
+        <strong style="color:${c.accent}">💡 </strong>${q.explication}
+      </div>
+      <button class="next-btn" id="nextBtn" style="background:${c.accent}">
+        ${state.current + 1 >= total ? "Voir les résultats 🏆" : "Question suivante →"}
+      </button>
+    ` : ""}
+
+    <p class="score-info">Score : ${state.score} / ${answered} répondue${answered > 1 ? "s" : ""}</p>
+  `;
+
+  // Events
+  app.querySelectorAll(".opt-btn:not([disabled])").forEach(btn => {
+    btn.addEventListener("click", () => choisir(parseInt(btn.dataset.idx)));
+  });
+  const nextBtn = app.querySelector("#nextBtn");
+  if (nextBtn) nextBtn.addEventListener("click", suivant);
+}
+
+function renderResults(app) {
+  const total = state.questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  const emoji = pct >= 80 ? "🏆" : pct >= 60 ? "🎯" : "📚";
+  const mention = pct >= 80 ? "🔥 Excellent ! T'es prêt(e) !" : pct >= 60 ? "👍 Pas mal, encore un effort !" : "💪 Révise encore, t'y es presque !";
+  const scoreColor = pct >= 80 ? "#30d158" : pct >= 60 ? "#ffd60a" : "#ff453a";
+
+  // Stats par catégorie
+  const cats = {};
+  state.historique.forEach(({ categorie, correct }) => {
+    if (!cats[categorie]) cats[categorie] = { total: 0, correct: 0 };
+    cats[categorie].total++;
+    if (correct) cats[categorie].correct++;
+  });
+
+  const statsHTML = Object.entries(cats).map(([cat, s]) => {
+    const c = COULEURS[cat] || { accent: "#fff" };
+    const p = Math.round((s.correct / s.total) * 100);
+    return `
+      <div class="stat-row">
+        <div class="stat-labels">
+          <span class="stat-cat">${cat}</span>
+          <span class="stat-score" style="color:${c.accent}">${s.correct}/${s.total}</span>
+        </div>
+        <div class="stat-bar-wrap">
+          <div class="stat-bar-fill" style="width:${p}%;background:${c.accent}"></div>
+        </div>
+      </div>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="result-card">
+      <div class="result-emoji">${emoji}</div>
+      <h1 class="result-title">Quiz terminé !</h1>
+      <p class="result-subtitle">${mention}</p>
+      <div class="result-score-box">
+        <div class="result-score-num" style="color:${scoreColor}">${state.score}/${total}</div>
+        <div class="result-score-pct">${pct}% de bonnes réponses</div>
+        <div class="result-bar-wrap">
+          <div class="result-bar-fill" style="width:${pct}%;background:${scoreColor}"></div>
+        </div>
+      </div>
+      <p class="stats-title">Résultats par matière</p>
+      ${statsHTML}
+      <button class="restart-btn" id="restartBtn">🔄 Recommencer</button>
+    </div>
+  `;
+  app.querySelector("#restartBtn").addEventListener("click", recommencer);
+}
+
+function choisir(idx) {
+  if (state.selected !== null) return;
+  const q = state.questions[state.current];
+  state.selected = idx;
+  if (idx === q.bonne) state.score++;
+  state.historique.push({ categorie: q.categorie, correct: idx === q.bonne });
+  render();
+}
+
+function suivant() {
+  if (state.current + 1 >= state.questions.length) {
+    state.fini = true;
+  } else {
+    state.current++;
+    state.selected = null;
+  }
+  render();
+}
+
+function recommencer() {
+  state = {
+    questions: shuffle(questions),
+    current: 0,
+    selected: null,
+    score: 0,
+    fini: false,
+    historique: [],
+  };
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
